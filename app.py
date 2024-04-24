@@ -84,7 +84,7 @@ def get_candidates_by_zip(zipcode):
     else:
         return f"Error accessing the API: {response.status_code}"
 
-def get_candidate_id_by_lastname(lastname):
+def get_candidates_by_lastname(lastname):
     api_key = "248d31121d86efe50494ae7ee0576fb3"
     url = f"http://api.votesmart.org/Candidates.getByLastname?key={api_key}&o=JSON&lastName={lastname}"
 
@@ -92,11 +92,7 @@ def get_candidate_id_by_lastname(lastname):
 
     if response.status_code == 200:
         candidates = response.json().get('candidateList', {}).get('candidate', [])
-        if candidates:
-            # Returns the ID of the first candidate from the list (if any)
-            return candidates['candidateId']
-        else:
-            return None
+        return candidates
     else:
         return f"Error accessing the API: {response.status_code}"
 
@@ -130,7 +126,18 @@ else:
         candidate_id = st.text_input("Enter candidate ID:")
     else:
         lastname = st.text_input("Enter candidate last name:")
-        candidate_id = get_candidate_id_by_lastname(lastname)
+        candidates = get_candidates_by_lastname(lastname)
+        if candidates:
+            if isinstance(candidates, dict):
+                candidate_id = candidates['candidateId']
+            elif len(candidates) == 1:
+                candidate_id = candidates[0]['candidateId']
+            else:
+                selected_candidate = st.selectbox("Select candidate:", [candidate['ballotName'] for candidate in candidates])
+                candidate_id = [candidate['candidateId'] for candidate in candidates if candidate['ballotName'] == selected_candidate][0]
+        else:
+            st.write("No candidates found for the given last name.")
+            candidate_id = None
 
     if candidate_id or search_type == "ID":
         if category == "Biography":
@@ -181,4 +188,3 @@ else:
             else:
                 st.write("### Vetoes")
                 st.json(votes_data)
-
